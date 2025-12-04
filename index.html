@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Team Draft Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes slideInFromTop {
+            from {
+                transform: translateY(-100px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeInScale {
+            from {
+                transform: scale(0.8);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .draft-animate {
+            animation: slideInFromTop 0.5s ease-out;
+        }
+
+        .fade-in-scale {
+            animation: fadeInScale 0.4s ease-out;
+        }
+
+        .picking-indicator {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .picking-indicator::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(168, 85, 247, 0.4), transparent);
+            animation: shimmer 1.5s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+    </style>
+</head>
+<body class="bg-gray-900 min-h-screen p-4">
+    <div class="max-w-2xl mx-auto">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-white mb-2">Team Draft Generator</h1>
+            <p class="text-gray-400">Create balanced teams with a draft animation</p>
+        </header>
+
+        <!-- Input Section -->
+        <div id="inputSection" class="bg-gray-800 rounded-lg shadow-xl p-6 mb-6">
+            <label class="block text-sm font-medium text-gray-300 mb-2">
+                Event Name & Players
+            </label>
+            <textarea
+                id="playerInput"
+                rows="12"
+                class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-3 focus:ring-2 focus:ring-purple-500 focus:border-transparent placeholder-gray-400"
+                placeholder="EVENT_NAME&#10;Player 1&#10;Player 2&#10;Player 3&#10;..."></textarea>
+
+            <div class="mt-4">
+                <label class="block text-sm font-medium text-gray-300 mb-2">
+                    Number of Teams
+                </label>
+                <input
+                    type="number"
+                    id="teamCount"
+                    min="2"
+                    max="10"
+                    value="2"
+                    class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-3 focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+            </div>
+
+            <button
+                id="setupBtn"
+                class="w-full mt-6 bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200">
+                Setup Draft
+            </button>
+        </div>
+
+        <!-- Pre-Draft Setup Section (Hidden initially) -->
+        <div id="setupSection" class="hidden bg-gray-800 rounded-lg shadow-xl p-6 mb-6">
+            <h2 class="text-xl font-bold text-white mb-4">Pre-assign Players (Optional)</h2>
+            <p class="text-sm text-gray-400 mb-4">Drag players to teams if you want to pre-assign them</p>
+
+            <div id="teamsSetup" class="space-y-4 mb-6">
+                <!-- Teams will be generated here -->
+            </div>
+
+            <div class="bg-gray-700 rounded-lg p-4 mb-4">
+                <h3 class="font-semibold text-gray-300 mb-2">Available Players</h3>
+                <div id="availablePlayers" class="flex flex-wrap gap-2 mb-3">
+                    <!-- Players will be generated here -->
+                </div>
+                <div class="flex gap-2">
+                    <input
+                        type="text"
+                        id="newPlayerInput"
+                        placeholder="Add new player..."
+                        class="flex-1 bg-gray-600 border border-gray-500 text-white rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent placeholder-gray-400">
+                    <button
+                        id="addPlayerBtn"
+                        class="bg-purple-600 hover:bg-purple-700 text-white font-semibold px-4 py-2 rounded-lg transition duration-200">
+                        Add
+                    </button>
+                </div>
+            </div>
+
+            <button
+                id="startDraftBtn"
+                class="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200">
+                Start Draft
+            </button>
+        </div>
+
+        <!-- Draft Animation Section (Hidden initially) -->
+        <div id="draftSection" class="hidden bg-gray-800 rounded-lg shadow-xl p-6 mb-6">
+            <h2 id="eventName" class="text-2xl font-bold text-white mb-6 text-center"></h2>
+            <div id="draftTeams" class="space-y-4">
+                <!-- Draft results will be shown here -->
+            </div>
+            <div class="flex gap-3 mt-6">
+                <button
+                    id="redraftBtn"
+                    class="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200">
+                    Redraft
+                </button>
+                <button
+                    id="resetBtn"
+                    class="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-semibold py-3 px-6 rounded-lg transition duration-200">
+                    Start Over
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
