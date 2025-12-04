@@ -89,17 +89,26 @@
                     class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-3 focus:ring-2 focus:ring-purple-500 focus:border-transparent">
             </div>
 
-            <button
-                id="setupBtn"
-                class="w-full mt-6 bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200">
-                Setup Draft
-            </button>
+            <div id="playerCountDisplay" class="mt-4 text-sm text-gray-400"></div>
+
+            <div class="flex gap-3 mt-6">
+                <button
+                    id="loadDraftBtn"
+                    class="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-semibold py-3 px-6 rounded-lg transition duration-200">
+                    Load Saved
+                </button>
+                <button
+                    id="setupBtn"
+                    class="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200">
+                    Setup Draft
+                </button>
+            </div>
         </div>
 
         <!-- Pre-Draft Setup Section (Hidden initially) -->
         <div id="setupSection" class="hidden bg-gray-800 rounded-lg shadow-xl p-6 mb-6">
             <h2 class="text-xl font-bold text-white mb-4">Pre-assign Players (Optional)</h2>
-            <p class="text-sm text-gray-400 mb-4">Drag players to teams if you want to pre-assign them</p>
+            <p class="text-sm text-gray-400 mb-4">Drag players to teams if you want to pre-assign them. Click team names to edit.</p>
 
             <div id="teamsSetup" class="space-y-4 mb-6">
                 <!-- Teams will be generated here -->
@@ -124,11 +133,39 @@
                 </div>
             </div>
 
+            <div class="flex gap-3">
+                <button
+                    id="manualDraftBtn"
+                    class="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-semibold py-3 px-6 rounded-lg transition duration-200">
+                    Manual Draft
+                </button>
+                <button
+                    id="startDraftBtn"
+                    class="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200">
+                    Auto Draft
+                </button>
+            </div>
             <button
-                id="startDraftBtn"
-                class="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200">
-                Start Draft
+                id="saveDraftBtn"
+                class="w-full mt-3 bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 text-sm">
+                Save for Later
             </button>
+        </div>
+
+        <!-- Manual Draft Section (Hidden initially) -->
+        <div id="manualDraftSection" class="hidden bg-gray-800 rounded-lg shadow-xl p-6 mb-6">
+            <h2 id="manualEventName" class="text-2xl font-bold text-white mb-4 text-center"></h2>
+            <div class="bg-gray-700 rounded-lg p-4 mb-4">
+                <p class="text-center text-gray-300 mb-3">
+                    <span id="currentPickTeam" class="font-bold text-purple-400"></span> is picking...
+                </p>
+                <div id="manualAvailablePlayers" class="flex flex-wrap gap-2 justify-center">
+                    <!-- Available players for manual draft -->
+                </div>
+            </div>
+            <div id="manualDraftTeams" class="space-y-4">
+                <!-- Manual draft teams -->
+            </div>
         </div>
 
         <!-- Draft Animation Section (Hidden initially) -->
@@ -137,15 +174,25 @@
             <div id="draftTeams" class="space-y-4">
                 <!-- Draft results will be shown here -->
             </div>
-            <div class="flex gap-3 mt-6">
+            <div class="grid grid-cols-2 gap-3 mt-6">
+                <button
+                    id="copyTeamsBtn"
+                    class="bg-gray-700 hover:bg-gray-600 text-white font-semibold py-3 px-4 rounded-lg transition duration-200 text-sm">
+                    Copy Teams
+                </button>
+                <button
+                    id="saveDraftResultBtn"
+                    class="bg-gray-700 hover:bg-gray-600 text-white font-semibold py-3 px-4 rounded-lg transition duration-200 text-sm">
+                    Save Draft
+                </button>
                 <button
                     id="redraftBtn"
-                    class="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200">
+                    class="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200">
                     Redraft
                 </button>
                 <button
                     id="resetBtn"
-                    class="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-semibold py-3 px-6 rounded-lg transition duration-200">
+                    class="bg-gray-700 hover:bg-gray-600 text-white font-semibold py-3 px-6 rounded-lg transition duration-200">
                     Start Over
                 </button>
             </div>
