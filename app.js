@@ -20,6 +20,17 @@ const eventNameEl = document.getElementById('eventName');
 const newPlayerInput = document.getElementById('newPlayerInput');
 const addPlayerBtn = document.getElementById('addPlayerBtn');
 const redraftBtn = document.getElementById('redraftBtn');
+const loadDraftBtn = document.getElementById('loadDraftBtn');
+const saveDraftBtn = document.getElementById('saveDraftBtn');
+const saveDraftResultBtn = document.getElementById('saveDraftResultBtn');
+const copyTeamsBtn = document.getElementById('copyTeamsBtn');
+const manualDraftBtn = document.getElementById('manualDraftBtn');
+const manualDraftSection = document.getElementById('manualDraftSection');
+const manualEventName = document.getElementById('manualEventName');
+const currentPickTeam = document.getElementById('currentPickTeam');
+const manualAvailablePlayers = document.getElementById('manualAvailablePlayers');
+const manualDraftTeams = document.getElementById('manualDraftTeams');
+const playerCountDisplay = document.getElementById('playerCountDisplay');
 
 // Event Listeners
 setupBtn.addEventListener('click', handleSetup);
@@ -27,6 +38,11 @@ startDraftBtn.addEventListener('click', startDraft);
 resetBtn.addEventListener('click', reset);
 addPlayerBtn.addEventListener('click', addNewPlayer);
 redraftBtn.addEventListener('click', handleRedraft);
+loadDraftBtn.addEventListener('click', loadSavedDraft);
+saveDraftBtn.addEventListener('click', saveDraft);
+saveDraftResultBtn.addEventListener('click', saveDraftResults);
+copyTeamsBtn.addEventListener('click', copyTeamsToClipboard);
+manualDraftBtn.addEventListener('click', startManualDraft);
 
 // Allow Enter key to add player
 newPlayerInput.addEventListener('keypress', (e) => {
@@ -34,6 +50,10 @@ newPlayerInput.addEventListener('keypress', (e) => {
         addNewPlayer();
     }
 });
+
+// Update player count when inputs change
+playerInput.addEventListener('input', updatePlayerCount);
+teamCountInput.addEventListener('input', updatePlayerCount);
 
 // Parse input and setup pre-draft
 function handleSetup() {
@@ -87,7 +107,9 @@ function renderSetup() {
     // Render team slots
     teamsSetup.innerHTML = teams.map(team => `
         <div class="border-2 border-dashed border-gray-600 rounded-lg p-4 bg-gray-700/30" data-team="${team.id}">
-            <h3 class="font-semibold text-gray-300 mb-2">${team.name}</h3>
+            <h3 class="font-semibold text-gray-300 mb-2 cursor-pointer hover:text-purple-400 transition" onclick="editTeamName(${team.id})">
+                ${team.name}
+            </h3>
             <div class="team-drop-zone min-h-[50px] flex flex-wrap gap-2" data-team="${team.id}">
                 ${team.players.map(p => createPlayerChip(p, true)).join('')}
             </div>
@@ -316,6 +338,214 @@ function handleRedraft() {
     renderSetup();
 }
 
+// Edit team name
+function editTeamName(teamId) {
+    const team = teams.find(t => t.id === teamId);
+    const newName = prompt('Enter team name:', team.name);
+    if (newName && newName.trim()) {
+        team.name = newName.trim();
+        renderSetup();
+    }
+}
+
+// Update player count display
+function updatePlayerCount() {
+    const input = playerInput.value.trim();
+    if (!input) {
+        playerCountDisplay.innerHTML = '';
+        return;
+    }
+
+    const lines = input.split('\n').filter(line => line.trim());
+    const playerCount = Math.max(0, lines.length - 1); // Subtract 1 for event name
+    const numTeamsValue = parseInt(teamCountInput.value) || 2;
+
+    if (playerCount === 0) {
+        playerCountDisplay.innerHTML = '';
+        return;
+    }
+
+    const playersPerTeam = Math.floor(playerCount / numTeamsValue);
+    const remainder = playerCount % numTeamsValue;
+
+    let displayText = `${playerCount} players, ${numTeamsValue} teams = ~${playersPerTeam} per team`;
+    let colorClass = 'text-gray-400';
+
+    if (remainder > 0) {
+        displayText += ` (${remainder} extra player${remainder > 1 ? 's' : ''})`;
+        colorClass = 'text-yellow-400';
+    }
+
+    if (playerCount < numTeamsValue) {
+        displayText = `⚠️ Not enough players! Need at least ${numTeamsValue} players for ${numTeamsValue} teams`;
+        colorClass = 'text-red-400';
+    }
+
+    playerCountDisplay.innerHTML = `<p class="${colorClass}">${displayText}</p>`;
+}
+
+// Save draft to localStorage
+function saveDraft() {
+    const draftData = {
+        eventName,
+        players,
+        teams,
+        numTeams,
+        savedAt: new Date().toISOString()
+    };
+    localStorage.setItem('savedDraft', JSON.stringify(draftData));
+    alert('Draft saved! You can load it later.');
+}
+
+// Save draft results
+function saveDraftResults() {
+    saveDraft();
+}
+
+// Load saved draft
+function loadSavedDraft() {
+    const saved = localStorage.getItem('savedDraft');
+    if (!saved) {
+        alert('No saved draft found!');
+        return;
+    }
+
+    const draftData = JSON.parse(saved);
+    eventName = draftData.eventName;
+    players = draftData.players;
+    teams = draftData.teams;
+    numTeams = draftData.numTeams;
+
+    // Update inputs
+    const playerNames = [eventName, ...players.map(p => p.name)];
+    playerInput.value = playerNames.join('\n');
+    teamCountInput.value = numTeams;
+
+    inputSection.classList.add('hidden');
+    setupSection.classList.remove('hidden');
+    renderSetup();
+
+    const savedDate = new Date(draftData.savedAt).toLocaleString();
+    alert(`Draft loaded from ${savedDate}`);
+}
+
+// Copy teams to clipboard
+async function copyTeamsToClipboard() {
+    let text = `${eventName}\n\n`;
+    teams.forEach(team => {
+        text += `${team.name}:\n`;
+        team.players.forEach(p => {
+            text += `  - ${p.name}\n`;
+        });
+        text += '\n';
+    });
+
+    try {
+        await navigator.clipboard.writeText(text);
+        alert('Teams copied to clipboard!');
+    } catch (err) {
+        // Fallback for older browsers
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        alert('Teams copied to clipboard!');
+    }
+}
+
+// Manual draft mode
+let manualDraftState = {
+    currentTeam: 0,
+    reverse: false,
+    availablePlayers: []
+};
+
+function startManualDraft() {
+    setupSection.classList.add('hidden');
+    manualDraftSection.classList.remove('hidden');
+    manualEventName.textContent = eventName;
+
+    // Get unassigned players
+    const unassigned = players.filter(p => p.team === null);
+    manualDraftState.availablePlayers = [...unassigned];
+    manualDraftState.currentTeam = 0;
+    manualDraftState.reverse = false;
+
+    renderManualDraft();
+}
+
+function renderManualDraft() {
+    const currentTeamObj = teams[manualDraftState.currentTeam];
+    currentPickTeam.textContent = currentTeamObj.name;
+
+    // Render available players as clickable buttons
+    manualAvailablePlayers.innerHTML = manualDraftState.availablePlayers.map(p => `
+        <button
+            class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-full text-sm transition transform hover:scale-105"
+            onclick="pickPlayer(${p.id})">
+            ${p.name}
+        </button>
+    `).join('');
+
+    // Render teams
+    manualDraftTeams.innerHTML = teams.map(team => `
+        <div class="bg-gray-700 rounded-lg p-4 ${team.id === manualDraftState.currentTeam ? 'ring-2 ring-purple-500' : ''}">
+            <h3 class="font-bold text-lg text-white mb-3">${team.name}</h3>
+            <div class="space-y-2">
+                ${team.players.map(p => `
+                    <div class="bg-gray-600 px-4 py-2 rounded-lg text-white">
+                        ${p.name}
+                    </div>
+                `).join('')}
+                ${team.players.length === 0 ? '<p class="text-gray-400 text-sm">No players yet</p>' : ''}
+            </div>
+        </div>
+    `).join('');
+
+    // Check if draft is complete
+    if (manualDraftState.availablePlayers.length === 0) {
+        finishManualDraft();
+    }
+}
+
+function pickPlayer(playerId) {
+    const player = players.find(p => p.id === playerId);
+    if (!player) return;
+
+    // Add to current team
+    teams[manualDraftState.currentTeam].players.push(player);
+    player.team = manualDraftState.currentTeam;
+
+    // Remove from available
+    manualDraftState.availablePlayers = manualDraftState.availablePlayers.filter(p => p.id !== playerId);
+
+    // Move to next team (snake draft)
+    if (!manualDraftState.reverse) {
+        manualDraftState.currentTeam++;
+        if (manualDraftState.currentTeam >= numTeams) {
+            manualDraftState.currentTeam = numTeams - 1;
+            manualDraftState.reverse = true;
+        }
+    } else {
+        manualDraftState.currentTeam--;
+        if (manualDraftState.currentTeam < 0) {
+            manualDraftState.currentTeam = 0;
+            manualDraftState.reverse = false;
+        }
+    }
+
+    renderManualDraft();
+}
+
+function finishManualDraft() {
+    manualDraftSection.classList.add('hidden');
+    draftSection.classList.remove('hidden');
+    eventNameEl.textContent = eventName;
+    renderDraftTeams();
+}
+
 // Reset everything
 function reset() {
     eventName = '';
@@ -326,7 +556,9 @@ function reset() {
 
     draftSection.classList.add('hidden');
     setupSection.classList.add('hidden');
+    manualDraftSection.classList.add('hidden');
     inputSection.classList.remove('hidden');
+    updatePlayerCount();
 }
 
 // Utility functions
