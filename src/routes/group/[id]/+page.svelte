@@ -427,11 +427,11 @@
 									min="1"
 									step="0.5"
 									placeholder="Skip or rate 1-10"
-									class="flex-1 bg-gray-600 border {playerErrors[playerName] ? 'border-red-500' : 'border-gray-500'} text-white rounded-lg px-3 py-2"
+									class="flex-1 min-w-0 bg-gray-600 border {playerErrors[playerName] ? 'border-red-500' : 'border-gray-500'} text-white rounded-lg px-3 py-2"
 								/>
 								<button
 									onclick={() => surveyRatings[playerName] = null}
-									class="bg-gray-600 hover:bg-gray-500 text-white px-3 py-2 rounded-lg text-sm"
+									class="flex-shrink-0 bg-gray-600 hover:bg-gray-500 text-white px-3 py-2 rounded-lg text-sm"
 								>
 									Skip
 								</button>
