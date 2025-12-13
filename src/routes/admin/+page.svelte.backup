@@ -1,0 +1,298 @@
+<script>
+	import { onMount } from 'svelte';
+	import { supabase } from '$lib/supabase';
+
+	let user = null;
+	let email = '';
+	let password = '';
+	let loading = false;
+	let error = '';
+
+	// Player management
+	let players = [];
+	let newPlayerName = '';
+	let newPlayerRating = 5;
+	let editingPlayer = null;
+
+	onMount(async () => {
+		// Check if user is already logged in
+		const { data } = await supabase.auth.getSession();
+		if (data.session) {
+			user = data.session.user;
+			await loadPlayers();
+		}
+	});
+
+	async function handleLogin() {
+		loading = true;
+		error = '';
+
+		const { data, error: loginError } = await supabase.auth.signInWithPassword({
+			email,
+			password
+		});
+
+		if (loginError) {
+			error = loginError.message;
+		} else {
+			user = data.user;
+			await loadPlayers();
+		}
+		loading = false;
+	}
+
+	async function handleLogout() {
+		await supabase.auth.signOut();
+		user = null;
+		players = [];
+	}
+
+	async function loadPlayers() {
+		const { data, error: loadError } = await supabase
+			.from('players')
+			.select('*')
+			.order('name');
+
+		if (loadError) {
+			console.error('Error loading players:', loadError);
+		} else {
+			players = data;
+		}
+	}
+
+	async function addPlayer() {
+		if (!newPlayerName.trim()) return;
+
+		const { error: insertError } = await supabase
+			.from('players')
+			.insert({
+				name: newPlayerName.trim(),
+				rating: newPlayerRating
+			});
+
+		if (insertError) {
+			alert('Error adding player: ' + insertError.message);
+		} else {
+			newPlayerName = '';
+			newPlayerRating = 5;
+			await loadPlayers();
+		}
+	}
+
+	async function deletePlayer(id) {
+		if (!confirm('Are you sure you want to delete this player?')) return;
+
+		const { error: deleteError } = await supabase
+			.from('players')
+			.delete()
+			.eq('id', id);
+
+		if (deleteError) {
+			alert('Error deleting player: ' + deleteError.message);
+		} else {
+			await loadPlayers();
+		}
+	}
+
+	async function updatePlayer(player) {
+		const { error: updateError } = await supabase
+			.from('players')
+			.update({
+				name: player.name,
+				rating: player.rating
+			})
+			.eq('id', player.id);
+
+		if (updateError) {
+			alert('Error updating player: ' + updateError.message);
+		} else {
+			editingPlayer = null;
+			await loadPlayers();
+		}
+	}
+
+	function startEdit(player) {
+		editingPlayer = { ...player };
+	}
+
+	function cancelEdit() {
+		editingPlayer = null;
+	}
+</script>
+
+<svelte:head>
+	<title>Admin Panel - Team Draft Generator</title>
+</svelte:head>
+
+<div class="max-w-4xl mx-auto p-4 min-h-screen">
+	<header class="text-center mb-8">
+		<h1 class="text-3xl font-bold text-white mb-2">Admin Panel</h1>
+		<a href="/" class="text-purple-400 hover:text-purple-300 text-sm">
+			← Back to Draft
+		</a>
+	</header>
+
+	{#if !user}
+		<!-- Login Form -->
+		<div class="max-w-md mx-auto bg-gray-800 rounded-lg shadow-xl p-6">
+			<h2 class="text-xl font-bold text-white mb-4">Admin Login</h2>
+
+			{#if error}
+				<div class="bg-red-500/20 border border-red-500 text-red-300 px-4 py-3 rounded mb-4">
+					{error}
+				</div>
+			{/if}
+
+			<div class="mb-4">
+				<label class="block text-sm font-medium text-gray-300 mb-2">Email</label>
+				<input
+					type="email"
+					bind:value={email}
+					placeholder="admin@example.com"
+					class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-3 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+				/>
+			</div>
+
+			<div class="mb-6">
+				<label class="block text-sm font-medium text-gray-300 mb-2">Password</label>
+				<input
+					type="password"
+					bind:value={password}
+					placeholder="••••••••"
+					class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-3 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+				/>
+			</div>
+
+			<button
+				onclick={handleLogin}
+				disabled={loading}
+				class="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200 disabled:opacity-50"
+			>
+				{loading ? 'Logging in...' : 'Login'}
+			</button>
+
+			<p class="text-gray-400 text-sm mt-4 text-center">
+				Note: You need to create an admin account in Supabase first.
+			</p>
+		</div>
+	{:else}
+		<!-- Admin Panel -->
+		<div class="bg-gray-800 rounded-lg shadow-xl p-6 mb-6">
+			<div class="flex justify-between items-center mb-6">
+				<div>
+					<h2 class="text-xl font-bold text-white">Player Management</h2>
+					<p class="text-gray-400 text-sm">Logged in as {user.email}</p>
+				</div>
+				<button
+					onclick={handleLogout}
+					class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition duration-200"
+				>
+					Logout
+				</button>
+			</div>
+
+			<!-- Add New Player -->
+			<div class="bg-gray-700 rounded-lg p-4 mb-6">
+				<h3 class="font-semibold text-gray-300 mb-3">Add New Player</h3>
+				<div class="flex gap-3">
+					<input
+						type="text"
+						bind:value={newPlayerName}
+						placeholder="Player name"
+						class="flex-1 bg-gray-600 border border-gray-500 text-white rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500"
+					/>
+					<div class="flex items-center gap-2">
+						<label class="text-gray-300 text-sm">Rating:</label>
+						<input
+							type="number"
+							bind:value={newPlayerRating}
+							min="1"
+							max="10"
+							class="w-16 bg-gray-600 border border-gray-500 text-white rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500"
+						/>
+					</div>
+					<button
+						onclick={addPlayer}
+						class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg transition duration-200"
+					>
+						Add
+					</button>
+				</div>
+			</div>
+
+			<!-- Players List -->
+			<div>
+				<h3 class="font-semibold text-gray-300 mb-3">All Players ({players.length})</h3>
+				<div class="space-y-2">
+					{#each players as player}
+						{#if editingPlayer && editingPlayer.id === player.id}
+							<!-- Edit Mode -->
+							<div class="bg-gray-700 p-4 rounded-lg flex gap-3 items-center">
+								<input
+									type="text"
+									bind:value={editingPlayer.name}
+									class="flex-1 bg-gray-600 border border-gray-500 text-white rounded-lg px-3 py-2"
+								/>
+								<div class="flex items-center gap-2">
+									<label class="text-gray-300 text-sm">Rating:</label>
+									<input
+										type="number"
+										bind:value={editingPlayer.rating}
+										min="1"
+										max="10"
+										class="w-16 bg-gray-600 border border-gray-500 text-white rounded-lg px-3 py-2"
+									/>
+								</div>
+								<button
+									onclick={() => updatePlayer(editingPlayer)}
+									class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition"
+								>
+									Save
+								</button>
+								<button
+									onclick={cancelEdit}
+									class="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded-lg transition"
+								>
+									Cancel
+								</button>
+							</div>
+						{:else}
+							<!-- View Mode -->
+							<div
+								class="bg-gray-700 p-4 rounded-lg flex justify-between items-center hover:bg-gray-600 transition"
+							>
+								<div class="flex-1">
+									<span class="text-white font-medium">{player.name}</span>
+									<span class="text-gray-400 text-sm ml-3">Rating: {player.rating}/10</span>
+								</div>
+								<div class="flex gap-2">
+									<button
+										onclick={() => startEdit(player)}
+										class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition text-sm"
+									>
+										Edit
+									</button>
+									<button
+										onclick={() => deletePlayer(player.id)}
+										class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition text-sm"
+									>
+										Delete
+									</button>
+								</div>
+							</div>
+						{/if}
+					{/each}
+					{#if players.length === 0}
+						<p class="text-gray-400 text-center py-8">No players yet. Add some above!</p>
+					{/if}
+				</div>
+			</div>
+		</div>
+	{/if}
+</div>
+
+<style>
+	:global(body) {
+		background-color: #111827;
+	}
+</style>
